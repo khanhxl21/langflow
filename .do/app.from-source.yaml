@@ -1,0 +1,81 @@
+# =============================================================================
+# DigitalOcean App Platform — biến thể BUILD TỪ REPO (thay vì kéo image có sẵn).
+#
+# Dùng khi bạn muốn sửa backend trong repo này và deploy chính code đó.
+# Dockerfile (docker/digitalocean/Dockerfile) chỉ bọc lại image chính thức
+# rồi thêm entrypoint, nên build vẫn nhanh (~1-2 phút) thay vì 20-40 phút.
+#
+#   doctl apps create --spec .do/app.from-source.yaml
+#
+# Lưu ý: sau khi PR được merge vào main, đổi `branch:` thành main.
+# =============================================================================
+
+name: langflow-khanhxl21-src
+
+regions:
+  - name: blr
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+services:
+  - name: langflow-backend
+    git:
+      repo_clone_url: https://github.com/khanhxl21/langflow.git
+      branch: arena/9b98ec6c-langflow
+    dockerfile_path: docker/digitalocean/Dockerfile
+
+    http_port: 8080
+    health_check:
+      http_path: /health_check
+      initial_delay_seconds: 180
+      period_seconds: 30
+      timeout_seconds: 15
+      success_threshold: 1
+      failure_threshold: 10
+
+    instance_size_slug: professional-s
+    instance_count: 1
+
+    envs:
+      - key: LANGFLOW_HOST
+        scope: RUN_TIME
+        value: "0.0.0.0"
+      - key: PORT
+        scope: RUN_TIME
+        value: "8080"
+      - key: LANGFLOW_LOG_LEVEL
+        scope: RUN_TIME
+        value: INFO
+      - key: LANGFLOW_AUTO_LOGIN
+        scope: RUN_TIME
+        value: "false"
+      - key: LANGFLOW_SUPERUSER
+        scope: RUN_TIME
+        value: admin
+      - key: LANGFLOW_SUPERUSER_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_WITH_A_STRONG_PASSWORD
+      - key: LANGFLOW_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_WITH_openssl_rand_hex_32
+      - key: LANGFLOW_DATABASE_URL
+        scope: RUN_TIME
+        value: "sqlite:////app/data/langflow.db"
+      - key: LANGFLOW_SAVE_DB_IN_CONFIG_DIR
+        scope: RUN_TIME
+        value: "false"
+      - key: LANGFLOW_CORS_ORIGINS
+        scope: RUN_TIME
+        value: "https://langflow-ui.vercel.app"
+
+ingress:
+  rules:
+    - component:
+        name: langflow-backend
+      match:
+        path:
+          prefix: /

@@ -1,0 +1,130 @@
+# =============================================================================
+# DigitalOcean App Platform — app spec cho backend Langflow
+# Tài liệu: https://docs.digitalocean.com/products/app-platform/reference/app-spec/
+#
+# Deploy bằng doctl (khuyến nghị):
+#   doctl apps create --spec .do/app.yaml          # lần đầu
+#   doctl apps update "$APP_ID" --spec .do/app.yaml # các lần sau
+#   bash deploy/digitalocean/deploy.sh             # helper, tự create/update
+#
+# TRƯỚC KHI DEPLOY — phải thay 2 giá trị sau:
+#   LANGFLOW_SUPERUSER_PASSWORD : REPLACE_WITH_A_STRONG_PASSWORD
+#   LANGFLOW_SECRET_KEY         : REPLACE_WITH_openssl_rand_hex_32
+# Chi tiết: deploy/digitalocean/README.md
+# =============================================================================
+
+name: langflow-khanhxl21
+
+regions:
+  - name: blr # Bangalore — gần Việt Nam nhất trong các region của App Platform
+
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
+
+services:
+  - name: langflow-backend
+
+    # Dùng image chính thức của Langflow → không phải build từ source.
+    # Build từ source mất 20-40 phút và hay OOM trên builder của App Platform.
+    # Muốn build từ repo thì dùng .do/app.from-source.yaml.
+    image:
+      registry_type: DOCKER_HUB
+      registry: langflowai
+      repository: langflow
+      tag: "1.13.0" # giữ khớp với version trong pyproject.toml
+
+    # App Platform inject biến PORT (mặc định 8080) và chỉ route traffic vào
+    # đúng port đó → phải khớp với LANGFLOW_PORT bên dưới.
+    http_port: 8080
+
+    # Langflow khởi động chậm (import hàng trăm component + migrate DB),
+    # nên health check cần nới lỏng nếu không deploy sẽ bị đánh dấu fail.
+    health_check:
+      http_path: /health_check
+      initial_delay_seconds: 180
+      period_seconds: 30
+      timeout_seconds: 15
+      success_threshold: 1
+      failure_threshold: 10
+
+    # professional-s ≈ 2 GB RAM / 1 vCPU.
+    # Có thể hạ xuống professional-xs (≈1 GB) để tiết kiệm.
+    # Đừng dùng 512 MB (basic-xxs): sẽ OOM ngay khi import component.
+    instance_size_slug: professional-s
+
+    # ⚠️ GIỮ NGUYÊN = 1 khi dùng SQLite: DB nằm trong container nên
+    # 2 instance sẽ có 2 DB hoàn toàn tách biệt (đăng nhập chập chờn).
+    instance_count: 1
+
+    envs:
+      - key: LANGFLOW_HOST
+        scope: RUN_TIME
+        value: "0.0.0.0"
+      - key: LANGFLOW_PORT
+        scope: RUN_TIME
+        value: "8080"
+      - key: LANGFLOW_LOG_LEVEL
+        scope: RUN_TIME
+        value: INFO
+
+      # Bắt buộc đăng nhập (image đã set sẵn, khai báo lại cho rõ ràng).
+      - key: LANGFLOW_AUTO_LOGIN
+        scope: RUN_TIME
+        value: "false"
+      - key: LANGFLOW_SUPERUSER
+        scope: RUN_TIME
+        value: admin
+      - key: LANGFLOW_SUPERUSER_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_WITH_A_STRONG_PASSWORD
+      # Key này ký JWT. PHẢI CỐ ĐỊNH giữa các lần deploy: nếu đổi,
+      # mọi token đã cấp bị vô hiệu → tất cả user bị đăng xuất.
+      #   openssl rand -hex 32
+      - key: LANGFLOW_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_WITH_openssl_rand_hex_32
+
+      # ⚠️ SQLite trên App Platform: container là EPHEMERAL, DB sẽ MẤT SẠCH
+      # mỗi lần deploy/rebuild/scale. Chỉ dùng để demo.
+      # Xem mục "Nâng cấp lên Managed Postgres" trong deploy/digitalocean/README.md.
+      - key: LANGFLOW_DATABASE_URL
+        scope: RUN_TIME
+        value: "sqlite:////app/data/langflow.db"
+      - key: LANGFLOW_SAVE_DB_IN_CONFIG_DIR
+        scope: RUN_TIME
+        value: "false"
+
+      # Cho phép frontend trên Vercel gọi thẳng API.
+      # Phải là origin CỤ THỂ: nếu để "*" Langflow tự tắt allow_credentials
+      # và đăng nhập sẽ lỗi. Thêm domain DO vào đây nếu muốn dùng UI trên DO.
+      - key: LANGFLOW_CORS_ORIGINS
+        scope: RUN_TIME
+        value: "https://langflow-ui.vercel.app"
+
+# -----------------------------------------------------------------------------
+# Tuỳ chọn: đổi sang DO Managed Postgres (~$15/tháng) để giữ data bền vững.
+# 1. Bỏ comment khối `databases` bên dưới.
+# 2. Thay LANGFLOW_DATABASE_URL bằng:
+#      - key: LANGFLOW_DATABASE_URL
+#        scope: RUN_TIME
+#        value: ${langflow-db.DATABASE_URL}
+#    rồi đổi scheme: postgresql+psycopg:// thay vì postgres://
+#    (DO tự inject ${langflow-db.DATABASE_URL} cho service trong cùng app).
+# -----------------------------------------------------------------------------
+# databases:
+#   - name: langflow-db
+#     engine: PG
+#     version: "16"
+#     production: false
+#     cluster_name: langflow-db
+
+ingress:
+  rules:
+    - component:
+        name: langflow-backend
+      match:
+        path:
+          prefix: /
