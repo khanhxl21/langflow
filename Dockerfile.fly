@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1
+# Image backend cho Fly.io — bọc image chính thức langflowai/langflow (đã gồm sẵn cả UI).
+# Build chỉ mất ~1-2 phút (chỉ pull base image), không cần compile từ source.
+#
+# Image gốc đã đặt sẵn: LANGFLOW_HOST=0.0.0.0, LANGFLOW_PORT=7860,
+# LANGFLOW_AUTO_LOGIN=false, WORKDIR /app, CMD ["langflow", "run"].
+# Muốn đổi version: sửa tag bên dưới cho khớp phiên bản repo (hiện tại 1.13.0).
+FROM langflowai/langflow:1.13.0
+
+# Port mà Fly proxy vào (khớp [http_service] internal_port trong fly.toml).
+EXPOSE 7860
