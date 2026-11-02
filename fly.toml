@@ -4,7 +4,7 @@
 # Trước khi deploy, đổi `app` thành tên duy nhất của bạn
 # (fly apps list để kiểm tra tên đã tồn tại hay chưn).
 
-app = "langflow-khanh21"
+app = "langflow-khanhxl21"
 primary_region = "sin" # Singapore - gần Việt Nam nhất
 
 [build]
