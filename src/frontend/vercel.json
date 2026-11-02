@@ -1,0 +1,18 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://langflow-khanh21.fly.dev/api/v1/:path*"
+    },
+    {
+      "source": "/api/v2/:path*",
+      "destination": "https://langflow-khanh21.fly.dev/api/v2/:path*"
+    },
+    { "source": "/health", "destination": "https://langflow-khanh21.fly.dev/health" },
+    {
+      "source": "/health_check",
+      "destination": "https://langflow-khanh21.fly.dev/health_check"
+    },
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
+}

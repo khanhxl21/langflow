@@ -1,0 +1,55 @@
+# Cấu hình Fly.io cho backend Langflow (kèm UI dựng sẵn trong image).
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# Trước khi deploy, đổi `app` thành tên duy nhất của bạn
+# (fly apps list để kiểm tra tên đã tồn tại hay chưn).
+
+app = "langflow-khanh21"
+primary_region = "sin" # Singapore - gần Việt Nam nhất
+
+[build]
+  dockerfile = "Dockerfile.fly"
+
+[env]
+  LANGFLOW_HOST = "0.0.0.0"
+  LANGFLOW_PORT = "7860"
+  # SQLite nằm trên volume /app/data (xem [[mounts]] bên dưới)
+  LANGFLOW_DATABASE_URL = "sqlite:////app/data/langflow.db"
+  LANGFLOW_SAVE_DB_IN_CONFIG_DIR = "false"
+  LANGFLOW_LOG_LEVEL = "INFO"
+  # Cho phép frontend trên Vercel gọi thẳng vào API của Fly
+  LANGFLOW_CORS_ORIGINS = "https://langflow-ui.vercel.app"
+
+[http_service]
+  internal_port = 7860
+  force_https = true
+  # Giữ ít nhất 1 máy chạy để tránh cold start (Langflow khởi động khá lâu).
+  # Muốn tiết kiệm credit thì đổi min_machines_running = 0.
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # WebSocket (chat streaming, build log) chạy trên cùng port này.
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 250
+    soft_limit = 200
+
+[[http_service.checks]]
+  grace_period = "90s"
+  interval = "30s"
+  method = "GET"
+  path = "/health_check"
+  timeout = "10s"
+
+# Langflow cần >= 1GB RAM; 2GB là mức thoải mái cho vài flow + playground.
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2gb"
+
+# Volume bền cho SQLite + uploads. Tạo trước khi deploy:
+#   fly volumes create langflow_data --region sin --size 3
+[[mounts]]
+  source = "langflow_data"
+  destination = "/app/data"
