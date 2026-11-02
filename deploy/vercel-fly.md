@@ -56,7 +56,7 @@ cd <repo>
 VM `shared-cpu-2x / 2gb`, volume `langflow_data` mount vào `/app/data`,
 health check `/health_check`.
 
-Đổi dòng `app = "langflow-khanh21"` thành tên riêng của bạn (phải duy nhất toàn cầu).
+Đổi dòng `app = "langflow-khanhxl21"` thành tên riêng của bạn (phải duy nhất toàn cầu).
 
 ### 2.2 Tạo volume (bắt buộc, làm trước khi deploy)
 

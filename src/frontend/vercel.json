@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/v1/:path*",
-      "destination": "https://langflow-khanh21.fly.dev/api/v1/:path*"
+      "destination": "https://langflow-khanhxl21.fly.dev/api/v1/:path*"
     },
     {
       "source": "/api/v2/:path*",
