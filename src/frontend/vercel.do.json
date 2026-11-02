@@ -1,0 +1,21 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://REPLACE_WITH_DO_HOST/api/v1/:path*"
+    },
+    {
+      "source": "/api/v2/:path*",
+      "destination": "https://REPLACE_WITH_DO_HOST/api/v2/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://REPLACE_WITH_DO_HOST/health"
+    },
+    {
+      "source": "/health_check",
+      "destination": "https://REPLACE_WITH_DO_HOST/health_check"
+    },
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
+}
