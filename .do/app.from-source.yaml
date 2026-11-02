@@ -7,7 +7,6 @@
 #
 #   doctl apps create --spec .do/app.from-source.yaml
 #
-# Lưu ý: sau khi PR được merge vào main, đổi `branch:` thành main.
 # =============================================================================
 
 name: langflow-khanhxl21-src
@@ -23,7 +22,7 @@ services:
   - name: langflow-backend
     git:
       repo_clone_url: https://github.com/khanhxl21/langflow.git
-      branch: arena/9b98ec6c-langflow
+      branch: main
     dockerfile_path: docker/digitalocean/Dockerfile
 
     http_port: 8080

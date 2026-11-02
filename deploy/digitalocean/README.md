@@ -89,9 +89,10 @@ bash deploy/digitalocean/deploy.sh
 doctl apps create --spec .do/app.from-source.yaml
 ```
 
-Spec này clone branch hiện tại và build `docker/digitalocean/Dockerfile`
+Spec này clone branch `main` và build `docker/digitalocean/Dockerfile`
 (bọc image chính thức + entrypoint map `PORT` → `LANGFLOW_PORT`, ~1-2 phút).
-Sau khi PR merge vào `main`, đổi `branch:` trong file thành `main`.
+Đang theo dõi `main`, nên muốn deploy code mới thì chỉ cần merge PR rồi
+`doctl apps update "$APP_ID" --spec .do/app.from-source.yaml`.
 
 ## 4. Deploy bằng dashboard (không dùng CLI)
 
